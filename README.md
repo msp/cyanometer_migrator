@@ -32,5 +32,5 @@ Requires a local, fake S3 backend to be running using: https://github.com/jubos/
 # start the fake S3 server
 $ fakes3 -r ~/fakes3_root -p 4567
 
-$ mix test
+$ AWS_ACCESS_KEY_ID=123 AWS_SECRET_ACCESS_KEY=asdf && mix test.watch
 ```

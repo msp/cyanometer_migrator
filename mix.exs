@@ -31,7 +31,9 @@ defmodule CyanometerMigrator.Mixfile do
       {:ex_aws, "~> 1.1"},
       {:poison, "~> 2.0"},
       {:sweet_xml, "~> 0.6.5"},
-      {:hackney, "~> 1.7"}
+      {:hackney, "~> 1.7"},
+      {:mix_test_watch, "~> 0.3", only: :dev},
+      {:ex_unit_notifier, "~> 0.1", only: :test}
     ]
   end
 end
