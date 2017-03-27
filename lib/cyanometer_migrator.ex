@@ -1,0 +1,2 @@
+defmodule CyanometerMigrator do
+end
