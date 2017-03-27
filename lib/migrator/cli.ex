@@ -43,6 +43,6 @@ defmodule Migrator.CLI do
   end
 
   def process({bucket, count}) do
-    # Migrator.S3.fetch(bucket)
+    Migrator.S3.fetch(bucket)
   end
 end

@@ -1,8 +1,8 @@
 # Cyanometer Migrator
 
-Migrate a collection of images to be name spaced by city and date.
+Migrate a collection of images to be namespaced by city and date.
 Our current S3 bucket is just a single big list.
-We also need to update paths in our web app DB.
+We also need to update paths in our web app DB via the API.
 
 ## Installation
 
@@ -23,3 +23,14 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
       [applications: [:cyanometer_migrator]]
     end
     ```
+
+## TDD
+
+Requires a local, fake S3 backend to be running using: https://github.com/jubos/fake-s3
+
+```bash
+# start the fake S3 server
+$ fakes3 -r ~/fakes3_root -p 4567
+
+$ mix test
+```
