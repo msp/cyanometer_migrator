@@ -14,27 +14,31 @@ defmodule S3Test do
 
   @test_images ["sky-01.01.2017-08_00_00-small",
                "sky-01.01.2017-08_00_00-large",
-               "sky-01.01.2017-08_15_00-small",
-               "sky-01.01.2017-08_15_00-large",
-               "sky-01.01.2017-08_30_00-small",
-               "sky-01.01.2017-08_30_00-large",
+               "sky-01.04.2017-08_15_00-small",
+               "sky-01.04.2017-08_15_00-large",
+               "sky-01.08.2017-08_30_00-small",
+               "sky-01.08.2017-08_30_00-large",
   ]
 
+  @country "Solvenia"
+  @city "Ljubljana"
+  @location "Central Square"
   @status_code_success 200
+  @cleanup true
 
   setup_all do
     @test_images
       |> Enum.each(&put_object/1)
 
-    # Logger.info "SETUP --------------------------------------------------------"
-    # IO.inspect ExAws.S3.list_objects(@test_bucket) |> ExAws.request
-
     on_exit fn ->
-      IO.puts "Clearing up..."
-      @test_images
-        |> Enum.each(&delete_object/1)
+      if @cleanup do
+        IO.puts "Cleaning up..."
+        items = ExAws.S3.list_objects(@test_bucket)
+          |> ExAws.request!
 
-      ExAws.S3.delete_bucket(@test_bucket) |> ExAws.request
+        Enum.each(items.body.contents, fn (item) -> delete_object(item) end)
+        ExAws.S3.delete_bucket(@test_bucket) |> ExAws.request
+      end
     end
 
     # No metadata
@@ -43,19 +47,54 @@ defmodule S3Test do
 
 
   test "fetch returns all objects" do
-    {ok, result} = Migrator.S3.fetch(@test_bucket)
+    items = Migrator.S3.fetch(@test_bucket)
 
     @test_images
       |> Enum.sort
       |> Enum.with_index
-      # |> Enum.map(fn {image, index} -> IO.puts "#{index}: #{image} : #{(Enum.at(result.body.contents, index)).key}" end)
-      |> Enum.map(fn {image, index} -> assert(image = (Enum.at(result.body.contents, index)).key) end)
+      |> Enum.map(fn {image, index} ->
+          assert(image = (Enum.at(items, index)).key)
+         end)
+  end
 
-    assert @status_code_success = result.status_code
+  test "namespace" do
+    result = Migrator.S3.namespace(@country, @city, @location, "sky-01.01.2017-08_00_00-small")
+    assert(result == "#{@country}/#{@city}/#{@location}/2017/01/01/sky-01.01.2017-08_00_00-small")
+
+    result = Migrator.S3.namespace(@country, @city, @location, "sky-31.12.2016-08_00_00-small")
+    assert(result == "#{@country}/#{@city}/#{@location}/2016/12/31/sky-31.12.2016-08_00_00-small")
+  end
+
+  test "copy" do
+    @test_images
+      |> Enum.map(fn (image) ->
+         Migrator.S3.copy(@test_bucket, image,
+                          @test_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+      end)
+
+    @test_images
+      |> Enum.map(fn (image) ->
+        get_object_result =
+          ExAws.S3.get_object(@test_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+            |> ExAws.request!
+
+        assert(@status_code_success == get_object_result.status_code)
+      end)
+
+    assert_raise ExAws.Error, fn ->
+      Enum.concat(@test_images, ["sky-31.12.2016-08_00_00-small-DOES_NOT_EXIST"])
+        |> Enum.map(fn (image) ->
+          get_object_result =
+            ExAws.S3.get_object(@test_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+              |> ExAws.request!
+
+          assert(@status_code_success == get_object_result.status_code)
+        end)
+    end
   end
 
   defp delete_object(obj) do
-    ExAws.S3.delete_object(@test_bucket, obj)
+    ExAws.S3.delete_object(@test_bucket, obj.key)
       |> ExAws.request!
   end
 

@@ -6,7 +6,9 @@ defmodule Migrator.CLI do
   """
 
   @default_count 4
-
+  @country "Solvenia"
+  @city "Ljubljana"
+  @location "Central Square"
 
   def main(argv) do
       argv
@@ -44,5 +46,9 @@ defmodule Migrator.CLI do
 
   def process({bucket, count}) do
     Migrator.S3.fetch(bucket)
+      |> Enum.map(fn (object) ->
+         Migrator.S3.copy(bucket, object.key,
+                          bucket, Migrator.S3.namespace(@country, @city, @location, object.key))
+      end)
   end
 end
