@@ -18,11 +18,11 @@ defmodule Migrator.S3 do
     String.split(object, "-")
       |> Enum.at(1)
       |> String.split(".")
-      |> datespace(country, city, location, object)
+      |> namespaced_string(country, city, location, object)
   end
 
-  defp datespace(d, country, city, location, obj) do
+  defp namespaced_string(d, country, city, location, obj) do
     {day, month, year} = {Enum.at(d, 0), Enum.at(d, 1), Enum.at(d, 2)}
-    "#{country}/#{city}/#{location}/#{year}/#{month}/#{day}/#{obj}"
+    "#{Mix.env}/#{country}/#{city}/#{location}/#{year}/#{month}/#{day}/#{obj}"
   end
 end
