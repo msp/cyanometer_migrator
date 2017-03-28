@@ -8,11 +8,11 @@ defmodule CliTest do
     assert parse_args(["--help", "anything"]) == :help
   end
 
-  test "two values returned if two given" do
-    assert parse_args(["our_bucket", "99"]) == { "our_bucket", 99 }
+  test "3 values returned if 3 given" do
+    assert parse_args(["source_bucket", "target_bucket", "99"]) == { "source_bucket", "target_bucket", 99 }
   end
 
-  test "count is defaulted if single value given" do
-    assert parse_args(["our_bucket"]) == { "our_bucket", 4 }
+  test "count is defaulted if only buckets value given" do
+    assert parse_args(["source_bucket", "target_bucket"]) == { "source_bucket", "target_bucket", 4 }
   end
 end

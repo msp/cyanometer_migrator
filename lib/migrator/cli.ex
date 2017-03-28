@@ -19,10 +19,10 @@ defmodule Migrator.CLI do
   @doc """
   `argv` can be -h or --help, which returns   `:help`.
 
-  Otherwise it is a s3 bucket name, and (optionally)
+  Otherwise it is a, s3 source / target bucket name, and (optionally)
   the number of entries work with (default all)
 
-  Return a tuple of `{ bucket, count }`, or `nil` if help was given.
+  Return a tuple of `{ source_bucket, target_bucket, count }`, or `nil` if help was given.
   """
 
   def parse_args(argv) do
@@ -30,25 +30,25 @@ defmodule Migrator.CLI do
                                      aliases:  [ h:    :help   ])
     case  parse  do
 
-    { [ help: true ], _,             _ } -> :help
-    { _, [ bucket, count ], _          } -> { bucket, String.to_integer(count) }
-    { _, [ bucket ],                 _ } -> { bucket, @default_count }
-    _                                    -> :help
+    { [ help: true ], _,                            _ } -> :help
+    { _, [ source_bucket, target_bucket, count ], _   } -> { source_bucket, target_bucket, String.to_integer(count) }
+    { _, [ source_bucket, target_bucket ],          _ } -> { source_bucket, target_bucket, @default_count }
+    _                                                   -> :help
     end
   end
 
   def process(:help) do
     IO.puts """
-    usage:  cyanometer_migrator <bucket> [ count | #{@default_count} ]
+    usage:  cyanometer_migrator <source_bucket> <target_bucket> [ count | #{@default_count} ]
     """
     System.halt(0)
   end
 
-  def process({bucket, count}) do
-    Migrator.S3.fetch(bucket)
+  def process({source_bucket, target_bucket, count}) do
+    Migrator.S3.fetch(source_bucket)
       |> Enum.map(fn (object) ->
-         Migrator.S3.copy(bucket, object.key,
-                          bucket, Migrator.S3.namespace(@country, @city, @location, object.key))
+         Migrator.S3.copy(source_bucket, object.key,
+                          target_bucket, Migrator.S3.namespace(@country, @city, @location, object.key))
       end)
   end
 end
