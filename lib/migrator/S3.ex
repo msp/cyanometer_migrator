@@ -14,15 +14,28 @@ defmodule Migrator.S3 do
       |> ExAws.request!
   end
 
-  def namespace(country, city, location, object) do
+
+  def namespace_url(source_bucket, country, city, location, url) do
+    uri = URI.parse(url)
+
+    s3_object =
+      uri.path
+      |> String.replace("/#{source_bucket}/", "")
+
+    "#{uri.scheme}://#{uri.host}/#{source_bucket}/#{namespace_s3_object(country, city, location, s3_object)}"
+  end
+
+  def namespace_s3_object(country, city, location, object) do
     String.split(object, "-")
       |> Enum.at(1)
       |> String.split(".")
       |> namespaced_string(country, city, location, object)
   end
 
-  defp namespaced_string(d, country, city, location, obj) do
+  defp namespaced_string(d, country, city, location, obj_str) do
     {day, month, year} = {Enum.at(d, 0), Enum.at(d, 1), Enum.at(d, 2)}
-    "#{Mix.env}/#{country}/#{city}/#{location}/#{year}/#{month}/#{day}/#{obj}"
+    "#{Mix.env}/#{country}/#{city}/#{location}/#{year}/#{month}/#{day}/#{obj_str}"
+    |> String.replace(" ", "-")
+    |> URI.encode
   end
 end

@@ -48,7 +48,7 @@ defmodule Migrator.CLI do
     Migrator.S3.fetch(source_bucket)
       |> Enum.map(fn (object) ->
          Migrator.S3.copy(source_bucket, object.key,
-                          target_bucket, Migrator.S3.namespace(@country, @city, @location, object.key))
+                          target_bucket, Migrator.S3.namespace_s3_object(@country, @city, @location, object.key))
       end)
   end
 end

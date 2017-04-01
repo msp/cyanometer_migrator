@@ -8,7 +8,7 @@ defmodule S3Test do
 
   require Logger
 
-  @test_region "fakes3"
+  @test_s3_domain "s3.eu-central-1.amazonaws.com"
   @test_source_bucket "fakes3-test-source-bucket"
   @test_target_bucket "fakes3-test-target-bucket"
 
@@ -62,29 +62,45 @@ defmodule S3Test do
       |> Enum.sort
       |> Enum.with_index
       |> Enum.map(fn {image, index} ->
-          assert(image = (Enum.at(items, index)).key)
+          assert(image == (Enum.at(items, index)).key)
          end)
   end
 
-  test "namespace" do
-    result = Migrator.S3.namespace(@country, @city, @location, "sky-01.01.2017-08_00_00-small")
-    assert(result == "test/#{@country}/#{@city}/#{@location}/2017/01/01/sky-01.01.2017-08_00_00-small")
 
-    result = Migrator.S3.namespace(@country, @city, @location, "sky-31.12.2016-08_00_00-small")
-    assert(result == "test/#{@country}/#{@city}/#{@location}/2016/12/31/sky-31.12.2016-08_00_00-small")
+  test "namespace_url" do
+    scheme = "https"
+    s3_object = "sky-01.01.2017-08_00_00-small.jpg"
+    fullpath = "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/#{s3_object}"
+
+    result = Migrator.S3.namespace_url(@test_source_bucket,@country, @city, @location, fullpath)
+    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
+
+    scheme = "http"
+    fullpath = "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/#{s3_object}"
+
+    result = Migrator.S3.namespace_url(@test_source_bucket,@country, @city, @location, fullpath)
+    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
+  end
+
+  test "namespace_s3_object" do
+    result = Migrator.S3.namespace_s3_object(@country, @city, @location, "sky-01.01.2017-08_00_00-small")
+    assert(result == "test/#{@country}/#{@city}/Central-Square/2017/01/01/sky-01.01.2017-08_00_00-small")
+
+    result = Migrator.S3.namespace_s3_object(@country, @city, @location, "sky-31.12.2016-08_00_00-small")
+    assert(result == "test/#{@country}/#{@city}/Central-Square/2016/12/31/sky-31.12.2016-08_00_00-small")
   end
 
   test "copy" do
     @test_images
       |> Enum.map(fn (image) ->
          Migrator.S3.copy(@test_source_bucket, image,
-                          @test_target_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+                          @test_target_bucket, Migrator.S3.namespace_s3_object(@country, @city, @location, image))
       end)
 
     @test_images
       |> Enum.map(fn (image) ->
         get_object_result =
-          ExAws.S3.get_object(@test_target_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+          ExAws.S3.get_object(@test_target_bucket, Migrator.S3.namespace_s3_object(@country, @city, @location, image))
             |> ExAws.request!
 
         assert(@status_code_success == get_object_result.status_code)
@@ -94,7 +110,7 @@ defmodule S3Test do
       Enum.concat(@test_images, ["sky-31.12.2016-08_00_00-small-DOES_NOT_EXIST"])
         |> Enum.map(fn (image) ->
           get_object_result =
-            ExAws.S3.get_object(@test_target_bucket, Migrator.S3.namespace(@country, @city, @location, image))
+            ExAws.S3.get_object(@test_target_bucket, Migrator.S3.namespace_s3_object(@country, @city, @location, image))
               |> ExAws.request!
 
           assert(@status_code_success == get_object_result.status_code)
@@ -114,11 +130,6 @@ defmodule S3Test do
 
   defp put_source_object(obj) do
     ExAws.S3.put_object(@test_source_bucket, obj, @test_binary_content)
-      |> ExAws.request!
-  end
-
-  defp put_target_object(obj) do
-    ExAws.S3.put_object(@test_target_bucket, obj, @test_binary_content)
       |> ExAws.request!
   end
 end
