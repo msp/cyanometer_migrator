@@ -4,6 +4,7 @@ defmodule Migrator.S3 do
   def fetch(bucket) do
     Logger.info "Fetching bucket called: #{bucket}"
     {ok, result} = ExAws.S3.list_objects(bucket) |> ExAws.request
+    Logger.info "Found: #{ok}: #{Enum.count(result.body.contents)}"
 
     result.body.contents
   end
@@ -15,21 +16,27 @@ defmodule Migrator.S3 do
   end
 
 
-  def namespace_url(source_bucket, country, city, location, url) do
+  def namespace_url(source_bucket, target_bucket, country, city, location, url) do
     uri = URI.parse(url)
 
     s3_object =
       uri.path
       |> String.replace("/#{source_bucket}/", "")
 
-    "#{uri.scheme}://#{uri.host}/#{source_bucket}/#{namespace_s3_object(country, city, location, s3_object)}"
+    "#{uri.scheme}://#{uri.host}/#{target_bucket}/#{namespace_s3_object(country, city, location, s3_object)}"
   end
 
   def namespace_s3_object(country, city, location, object) do
-    String.split(object, "-")
-      |> Enum.at(1)
-      |> String.split(".")
-      |> namespaced_string(country, city, location, object)
+    case String.contains?(object, "-") do
+      true ->
+        String.split(object, "-")
+          |> Enum.at(1)
+          |> String.split(".")
+          |> namespaced_string(country, city, location, object)
+      false ->
+        Logger.warn "Skipping S3 key: #{inspect object}"
+        ""
+    end
   end
 
   defp namespaced_string(d, country, city, location, obj_str) do

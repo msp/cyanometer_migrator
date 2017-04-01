@@ -72,22 +72,27 @@ defmodule S3Test do
     s3_object = "sky-01.01.2017-08_00_00-small.jpg"
     fullpath = "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/#{s3_object}"
 
-    result = Migrator.S3.namespace_url(@test_source_bucket,@country, @city, @location, fullpath)
-    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
+    result = Migrator.S3.namespace_url(@test_source_bucket, @test_target_bucket, @country, @city, @location, fullpath)
+    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_target_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
 
     scheme = "http"
     fullpath = "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/#{s3_object}"
 
-    result = Migrator.S3.namespace_url(@test_source_bucket,@country, @city, @location, fullpath)
-    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_source_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
+    result = Migrator.S3.namespace_url(@test_source_bucket, @test_target_bucket, @country, @city, @location, fullpath)
+    assert(result == "#{scheme}://#{@test_s3_domain}/#{@test_target_bucket}/test/#{@country}/#{@city}/Central-Square/2017/01/01/#{s3_object}")
   end
 
-  test "namespace_s3_object" do
+  test "namespace_s3_object: expected format" do
     result = Migrator.S3.namespace_s3_object(@country, @city, @location, "sky-01.01.2017-08_00_00-small")
     assert(result == "test/#{@country}/#{@city}/Central-Square/2017/01/01/sky-01.01.2017-08_00_00-small")
 
     result = Migrator.S3.namespace_s3_object(@country, @city, @location, "sky-31.12.2016-08_00_00-small")
     assert(result == "test/#{@country}/#{@city}/Central-Square/2016/12/31/sky-31.12.2016-08_00_00-small")
+  end
+
+  test "namespace_s3_object: unexpected format" do
+    result = Migrator.S3.namespace_s3_object(@country, @city, @location, "ignore_warning_testing_unexpected_key_format")
+    assert(result == "")
   end
 
   test "copy" do
